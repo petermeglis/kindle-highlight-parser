@@ -4,8 +4,8 @@
 require 'nokogiri'
 
 OUTPUT_FILE_PATH = "./output.md"
-CHAPTER_TITLE_HIGHLIGHT_REGEX = /^(Highlight).* - ((?<chapter_title>.*) > )* (Page|Location) (?<number>.*)/
-CHAPTER_TITLE_NOTE_REGEX = /^(Note) - ((?<chapter_title>.*) > )* (Page|Location) (?<number>.*)/
+CHAPTER_TITLE_HIGHLIGHT_REGEX = /^(Highlight).* - ((?<chapter_title>.*) >)*.*(Page|Location) (?<number>.*)/
+CHAPTER_TITLE_NOTE_REGEX = /^(Note) - ((?<chapter_title>.*) >)*.*(Page|Location) (?<number>.*)/
 
 # Main
 def usage
@@ -28,7 +28,7 @@ def main
   File.open(input_file, "r") do |input_file|
     html_content = input_file.read
     document = Nokogiri::HTML.parse(html_content)
-    divs = document.css("div.bodyContainer div")
+    divs = document.css(".sectionHeading,.noteHeading,.noteText")
 
     last_heading = ""
     last_was_note = false
@@ -64,11 +64,17 @@ def main
           last_heading = chapter_title
         end
       when "noteText"
-        if last_was_note
-          output_string += "NOTE @#{last_note_number}: #{div_text}\n\n"
-        else
-          output_string += "#{div_text}\n\n"
+        if div.children.count > 1
+          div_text = div.children.find {|n| n.text?}.text
         end
+
+        if last_was_note
+          output_string += "NOTE @#{last_note_number}: #{div_text}\n"
+        else
+          output_string += "#{div_text}\n"
+        end
+
+        output_string += "\n" unless div_text.include? "\n"
       end
     end
   end
