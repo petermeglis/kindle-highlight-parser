@@ -28,22 +28,22 @@ def main
   File.open(input_file, "r") do |input_file|
     html_content = input_file.read
     document = Nokogiri::HTML.parse(html_content)
-    divs = document.css(".sectionHeading,.noteHeading,.noteText")
+    elements = document.css(".sectionHeading,.noteHeading,.noteText")
 
     last_heading = ""
     last_was_note = false
     last_note_number = 0
 
-    divs.each do |div|
-      div_class = div["class"]
-      div_text = div.text.strip
+    elements.each do |element|
+      element_class = element["class"]
+      element_text = element.text.strip
 
-      case div_class
+      case element_class
       when "sectionHeading"
-        output_string += "# #{div_text}\n\n"
+        output_string += "# #{element_text}\n\n"
       when "noteHeading"
-        highlight_match = div_text.match(CHAPTER_TITLE_HIGHLIGHT_REGEX)
-        note_match = div_text.match(CHAPTER_TITLE_NOTE_REGEX)
+        highlight_match = element_text.match(CHAPTER_TITLE_HIGHLIGHT_REGEX)
+        note_match = element_text.match(CHAPTER_TITLE_NOTE_REGEX)
 
         if !highlight_match.nil?
           last_was_note = false
@@ -55,7 +55,7 @@ def main
 
           chapter_title = note_match[:chapter_title]
         else
-          puts "Error: not matched. Text: #{div_text}"
+          puts "Error: not matched. Text: #{element_text}"
           return
         end
 
@@ -64,17 +64,17 @@ def main
           last_heading = chapter_title
         end
       when "noteText"
-        if div.children.count > 1
-          div_text = div.children.find {|n| n.text?}.text
+        if element.children.count > 1
+          element_text = element.children.find {|n| n.text?}.text
         end
 
         if last_was_note
-          output_string += "NOTE @#{last_note_number}: #{div_text}\n"
+          output_string += "NOTE @#{last_note_number}: #{element_text}\n"
         else
-          output_string += "#{div_text}\n"
+          output_string += "#{element_text}\n"
         end
 
-        output_string += "\n" unless div_text.include? "\n"
+        output_string += "\n" unless element_text.include? "\n"
       end
     end
   end
