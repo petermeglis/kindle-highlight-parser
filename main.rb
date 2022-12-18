@@ -4,7 +4,8 @@
 require 'nokogiri'
 
 OUTPUT_FILE_PATH = "./output.md"
-CHAPTER_TITLE_REGEX = /^(Highlight|Note).* - ((?<chapter_title>.*) > )* (Page|Location) (?<number>.*)/
+CHAPTER_TITLE_HIGHLIGHT_REGEX = /^(Highlight).* - ((?<chapter_title>.*) > )* (Page|Location) (?<number>.*)/
+CHAPTER_TITLE_NOTE_REGEX = /^(Note) - ((?<chapter_title>.*) > )* (Page|Location) (?<number>.*)/
 
 # Main
 def usage
@@ -30,6 +31,8 @@ def main
     divs = document.css("div.bodyContainer div")
 
     last_heading = ""
+    last_was_note = false
+    last_note_number = 0
 
     divs.each do |div|
       div_class = div["class"]
@@ -39,22 +42,33 @@ def main
       when "sectionHeading"
         output_string += "# #{div_text}\n\n"
       when "noteHeading"
-        matched = div_text.match(CHAPTER_TITLE_REGEX)
+        highlight_match = div_text.match(CHAPTER_TITLE_HIGHLIGHT_REGEX)
+        note_match = div_text.match(CHAPTER_TITLE_NOTE_REGEX)
 
-        # Guard against errors matching.
-        if matched.nil?
+        if !highlight_match.nil?
+          last_was_note = false
+
+          chapter_title = highlight_match[:chapter_title]
+        elsif !note_match.nil?
+          last_was_note = true
+          last_note_number = note_match[:number]
+
+          chapter_title = note_match[:chapter_title]
+        else
           puts "Error: not matched. Text: #{div_text}"
           return
         end
-
-        chapter_title = matched[:chapter_title]
 
         if chapter_title != last_heading && !chapter_title.nil?
           output_string += "## #{chapter_title}\n\n"
           last_heading = chapter_title
         end
       when "noteText"
-        output_string += "#{div_text}\n\n"
+        if last_was_note
+          output_string += "NOTE @#{last_note_number}: #{div_text}\n\n"
+        else
+          output_string += "#{div_text}\n\n"
+        end
       end
     end
   end
