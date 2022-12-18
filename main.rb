@@ -4,7 +4,7 @@
 require 'nokogiri'
 
 OUTPUT_FILE_PATH = "./output.md"
-CHAPTER_TITLE_REGEX = /^Highlight.* - ((?<chapter_title>.*) > )* Page (?<number>.*)/
+CHAPTER_TITLE_REGEX = /^(Highlight|Note).* - ((?<chapter_title>.*) > )* (Page|Location) (?<number>.*)/
 
 # Main
 def usage
@@ -39,7 +39,15 @@ def main
       when "sectionHeading"
         output_string += "# #{div_text}\n\n"
       when "noteHeading"
-        chapter_title = div_text.match(CHAPTER_TITLE_REGEX)[:chapter_title]
+        matched = div_text.match(CHAPTER_TITLE_REGEX)
+
+        # Guard against errors matching.
+        if matched.nil?
+          puts "Error: not matched. Text: #{div_text}"
+          return
+        end
+
+        chapter_title = matched[:chapter_title]
 
         if chapter_title != last_heading && !chapter_title.nil?
           output_string += "## #{chapter_title}\n\n"
